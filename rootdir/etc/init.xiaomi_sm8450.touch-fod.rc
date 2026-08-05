@@ -1,0 +1,14 @@
+#
+# Copyright (C) 2026 The LineageOS Project
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+on boot
+    # UDFPS gesture nodes are provided by the generic OLED touch interface.
+    chown system system /sys/class/touch/touch_dev/fod_finger_state
+    chown system system /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
+    chown system system /sys/class/touch/touch_dev/fod_press_status
+    chmod 0660 /sys/class/touch/touch_dev/fod_finger_state
+    chmod 0660 /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
+    chmod 0660 /sys/class/touch/touch_dev/fod_press_status

@@ -1,0 +1,5 @@
+# CNE
+persist.vendor.cne.feature=1
+
+# Radio
+ril.subscription.types=NV,RUIM

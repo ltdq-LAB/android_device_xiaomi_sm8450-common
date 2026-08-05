@@ -1,0 +1,5 @@
+# XTRA daemon trigger for the Qualcomm location stack (loc_launcher).
+# Packaged separately from init.xiaomi_sm8450.rc so it can be excluded
+# on devices without GNSS (tablets, TARGET_IS_TABLET).
+on property:persist.sys.xtra-daemon.enabled=*
+    restart loc_launcher

@@ -49,13 +49,6 @@ on boot
     chmod 0660 /dev/xiaomi-touch
 
     # Touchscreen sensors
-    chown system system /sys/class/touch/touch_dev/fod_finger_state
-    chown system system /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
-    chown system system /sys/class/touch/touch_dev/fod_press_status
-    chmod 0660 /sys/class/touch/touch_dev/fod_finger_state
-    chmod 0660 /sys/class/touch/touch_dev/fod_longpress_gesture_enabled
-    chmod 0660 /sys/class/touch/touch_dev/fod_press_status
-
     chown system system /sys/class/touch/touch_dev/gesture_single_tap_enabled
     chown system system /sys/class/touch/touch_dev/gesture_single_tap_state
     chmod 0660 /sys/class/touch/touch_dev/gesture_single_tap_enabled
@@ -118,9 +111,6 @@ on post-fs-data
 on property:sys.boot_completed=1
     # Set thermal mode to mgame
     write /sys/devices/virtual/thermal/thermal_message/sconfig 20
-
-on property:persist.sys.xtra-daemon.enabled=*
-    restart loc_launcher
 
 service vendor.nv_mac /vendor/bin/nv_mac
     class late_start

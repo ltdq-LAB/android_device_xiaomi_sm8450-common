@@ -1,0 +1,6 @@
+# Bluetooth telephony profiles
+bluetooth.profile.pbap.sim.enabled=true
+bluetooth.profile.sap.server.enabled=true
+
+# DPM
+persist.vendor.dpm.feature=11

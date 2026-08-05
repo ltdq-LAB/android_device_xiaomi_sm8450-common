@@ -60,7 +60,9 @@ TARGET_NO_BOOTLOADER := true
 TARGET_FS_CONFIG_GEN := $(COMMON_PATH)/configs/config.fs
 
 # GPS
+ifneq ($(TARGET_IS_TABLET),true)
 BOARD_VENDOR_QCOM_GPS_LOC_API_HARDWARE := default
+endif
 
 # Kernel
 BOARD_INCLUDE_DTB_IN_BOOTIMG := true
@@ -126,6 +128,7 @@ TARGET_KERNEL_EXT_MODULES := \
 	qcom/opensource/datarmnet-ext/sch \
 	qcom/opensource/datarmnet-ext/wlan \
 	qcom/opensource/display-drivers/msm \
+	qcom/opensource/touch-drivers \
 	qcom/opensource/eva-kernel \
 	qcom/opensource/video-driver \
 	qcom/opensource/wlan/qcacld-3.0/.qca6490 \
@@ -172,6 +175,12 @@ TARGET_SYSTEM_PROP += $(COMMON_PATH)/properties/system.prop
 TARGET_SYSTEM_EXT_PROP += $(COMMON_PATH)/properties/system_ext.prop
 TARGET_VENDOR_PROP += $(COMMON_PATH)/properties/vendor.prop
 
+ifneq ($(TARGET_IS_TABLET),true)
+TARGET_SYSTEM_PROP += $(COMMON_PATH)/properties/system_telephony.prop
+TARGET_SYSTEM_EXT_PROP += $(COMMON_PATH)/properties/system_ext_telephony.prop
+TARGET_VENDOR_PROP += $(COMMON_PATH)/properties/vendor_telephony.prop
+endif
+
 # Recovery
 TARGET_RECOVERY_FSTAB := $(COMMON_PATH)/rootdir/etc/recovery.fstab
 TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
@@ -180,7 +189,11 @@ TARGET_USERIMAGES_USE_F2FS := true
 BOARD_EXCLUDE_KERNEL_FROM_RECOVERY_IMAGE := true
 
 # RIL
+ifeq ($(TARGET_IS_TABLET),true)
+ENABLE_VENDOR_RIL_SERVICE := false
+else
 ENABLE_VENDOR_RIL_SERVICE := true
+endif
 
 # Sepolicy
 include device/qcom/sepolicy_vndr/SEPolicy.mk
@@ -192,6 +205,12 @@ BOARD_VENDOR_SEPOLICY_DIRS += $(COMMON_PATH)/sepolicy/vendor
 # VINTF
 DEVICE_MATRIX_FILE := hardware/qcom-caf/common/compatibility_matrix.xml
 
+ifeq ($(TARGET_IS_TABLET),true)
+DEVICE_MANIFEST_SKUS := cape
+DEVICE_MANIFEST_CAPE_FILES := \
+    $(COMMON_PATH)/vintf/manifest_tablet.xml \
+    $(COMMON_PATH)/vintf/manifest_xiaomi.xml
+else
 DEVICE_MANIFEST_SKUS := taro diwali cape ukee
 $(foreach sku, $(call to-upper, $(DEVICE_MANIFEST_SKUS)), \
     $(eval DEVICE_MANIFEST_$(sku)_FILES := \
@@ -199,6 +218,7 @@ $(foreach sku, $(call to-upper, $(DEVICE_MANIFEST_SKUS)), \
         $(COMMON_PATH)/vintf/manifest_xiaomi.xml \
         $(if $(TARGET_NFC_SUPPORTED_SKUS),$(COMMON_PATH)/vintf/manifest_no_nfc.xml,) \
     ))
+endif
 
 ifneq ($(TARGET_NFC_SUPPORTED_SKUS),)
 ODM_MANIFEST_SKUS += $(TARGET_NFC_SUPPORTED_SKUS)

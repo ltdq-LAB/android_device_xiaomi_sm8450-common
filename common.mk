@@ -7,7 +7,11 @@
 # Inherit from those products. Most specific first.
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit.mk)
 TARGET_SUPPORTS_OMX_SERVICE := false
+ifeq ($(TARGET_IS_TABLET),true)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base.mk)
+else
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
+endif
 
 # Add common definitions for Qualcomm
 $(call inherit-product, hardware/qcom-caf/common/common.mk)
@@ -24,7 +28,9 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/launch_with_ven
 # Setup dalvik vm configs
 $(call inherit-product, frameworks/native/build/phone-xhdpi-6144-dalvik-heap.mk)
 
-# Inherit from the proprietary version
+# Inherit the complete common proprietary stack.  Do not post-filter this for
+# Wi-Fi-only products: liuqin stock still ships TEE-backed components such as
+# Face3D, MiPay and Soter, which are independent of telephony and physical NFC.
 $(call inherit-product, vendor/xiaomi/sm8450-common/sm8450-common-vendor.mk)
 
 # A/B
@@ -144,12 +150,12 @@ PRODUCT_PACKAGES += \
 
 # Fingerprint
 PRODUCT_PACKAGES += \
-    android.hardware.biometrics.fingerprint-service.xiaomi \
-    libudfpshandler:64
+    android.hardware.biometrics.fingerprint-service.xiaomi
 
 ifeq ($(TARGET_HAS_UDFPS),true)
 PRODUCT_PACKAGES += \
-    FrameworksResUdfps
+    FrameworksResUdfps \
+    libudfpshandler:64
 
 PRODUCT_VENDOR_PROPERTIES += \
     ro.vendor.sensors.xiaomi.udfps=true
@@ -168,6 +174,7 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/fstab.qcom:$(TARGET_COPY_OUT_VENDOR_RAMDISK)/first_stage_ramdisk/fstab.qcom
 
 # GPS
+ifneq ($(TARGET_IS_TABLET),true)
 PRODUCT_PACKAGES += \
     android.hardware.gnss@2.1-impl-qti:64 \
     android.hardware.gnss-aidl-impl-qti:64 \
@@ -195,6 +202,7 @@ $(call soong_config_set, qtilocation, feature_nhz, false)
 
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.location.gps.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.location.gps.xml
+endif
 
 # Graphics
 PRODUCT_COPY_FILES += \
@@ -257,6 +265,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.ipsec_tunnels.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.ipsec_tunnels.xml
 
 # NFC / Secure Element
+ifneq ($(TARGET_IS_TABLET),true)
 PRODUCT_PACKAGES += \
     android.hardware.nfc-service.nxp \
     com.android.nfc_extras
@@ -281,26 +290,33 @@ $(foreach sku_out, $(TARGET_COPY_OUT_NFC_SKU_PERMISSIONS), \
         frameworks/native/data/etc/android.hardware.se.omapi.ese.xml:$(sku_out)/android.hardware.se.omapi.ese.xml \
         frameworks/native/data/etc/com.android.nfc_extras.xml:$(sku_out)/com.android.nfc_extras.xml \
         frameworks/native/data/etc/com.nxp.mifare.xml:$(sku_out)/com.nxp.mifare.xml))
+endif
 
 # Overlays
+# Device/framework tuning overlays are not telephony-specific.
 PRODUCT_PACKAGES += \
-    CarrierConfigResCommon \
     FrameworksResCommon \
-    SettingsResCommon \
-    SystemUIResCommon \
-    TelephonyResCommon \
-    WifiResCommon
-
-PRODUCT_PACKAGES += \
-    DialerResXiaomi \
     FrameworksResTarget \
     FrameworksResXiaomi \
+    SettingsResXiaomi
+
+PRODUCT_PACKAGES += \
     LineageResXiaomi \
     SettingsProviderResXiaomi \
-    SettingsResXiaomi \
+    SettingsResCommon \
+    SystemUIResCommon \
+    WifiResCommon \
     WifiResTarget \
     WifiResTarget_cape \
     WifiResTarget_spf
+
+# Telephony-only overlays
+ifneq ($(TARGET_IS_TABLET),true)
+PRODUCT_PACKAGES += \
+    CarrierConfigResCommon \
+    TelephonyResCommon \
+    DialerResXiaomi
+endif
 
 PRODUCT_PACKAGES += \
     NcmTetheringOverlay
@@ -339,25 +355,28 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     android.hardware.sensors-service.xiaomi-multihal
 
+ifneq ($(TARGET_IS_TABLET),true)
 PRODUCT_PACKAGES += \
     sensors.xiaomi.v2:64
 
-PRODUCT_PACKAGES += \
-    sensor-notifier
-
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/sensors/hals.conf:$(TARGET_COPY_OUT_ODM)/etc/sensors/hals.conf
+endif
 
+ifneq ($(TARGET_IS_TABLET),true)
+PRODUCT_PACKAGES += \
+    sensor-notifier
+endif
+
+ifeq ($(TARGET_IS_TABLET),true)
+sm8450_sensor_permissions := accelerometer gyroscope light stepcounter stepdetector
+else
+sm8450_sensor_permissions := accelerometer compass gyroscope light proximity stepcounter stepdetector
+endif
 $(foreach sku, taro diwali cape ukee, \
-    $(eval PRODUCT_COPY_FILES += \
-        frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.accelerometer.xml \
-        frameworks/native/data/etc/android.hardware.sensor.compass.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.compass.xml \
-        frameworks/native/data/etc/android.hardware.sensor.gyroscope.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.gyroscope.xml \
-        frameworks/native/data/etc/android.hardware.sensor.light.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.light.xml \
-        frameworks/native/data/etc/android.hardware.sensor.proximity.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.proximity.xml \
-        frameworks/native/data/etc/android.hardware.sensor.stepcounter.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.stepcounter.xml \
-        frameworks/native/data/etc/android.hardware.sensor.stepdetector.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.stepdetector.xml \
-    ))
+    $(foreach sensor, $(sm8450_sensor_permissions), \
+        $(eval PRODUCT_COPY_FILES += \
+            frameworks/native/data/etc/android.hardware.sensor.$(sensor).xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(sku)/android.hardware.sensor.$(sensor).xml)))
 
 # Soong namespaces
 PRODUCT_SOONG_NAMESPACES += \
@@ -365,6 +384,7 @@ PRODUCT_SOONG_NAMESPACES += \
     hardware/xiaomi
 
 # Telephony
+ifneq ($(TARGET_IS_TABLET),true)
 PRODUCT_PACKAGES += \
     extphonelib \
     extphonelib-product \
@@ -395,6 +415,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.telephony.gsm.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.telephony.gsm.xml \
     frameworks/native/data/etc/android.hardware.telephony.ims.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.telephony.ims.xml \
     frameworks/native/data/etc/android.software.sip.voip.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.sip.voip.xml
+endif
 
 # Thermal
 PRODUCT_PACKAGES += \
@@ -444,8 +465,21 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/init.qcom.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qcom.rc \
     $(LOCAL_PATH)/rootdir/etc/init.qti.kernel.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.qti.kernel.rc \
-    $(LOCAL_PATH)/rootdir/etc/init.target.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.target.rc \
-    $(LOCAL_PATH)/rootdir/etc/init.xiaomi_sm8450.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.xiaomi_sm8450.rc \
+    $(LOCAL_PATH)/rootdir/etc/init.target.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/hw/init.target.rc
+
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/etc/init.xiaomi_sm8450.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.xiaomi_sm8450.rc
+
+ifneq ($(TARGET_IS_TABLET),true)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/etc/init.xiaomi_sm8450.touch-fod.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.xiaomi_sm8450.touch-fod.rc
+endif
+
+# XTRA daemon trigger for loc_launcher - only on devices with GNSS
+ifneq ($(TARGET_IS_TABLET),true)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/rootdir/etc/init.xiaomi_sm8450.loc.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.xiaomi_sm8450.loc.rc
+endif
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/bin/init.class_main.sh:$(TARGET_COPY_OUT_VENDOR)/bin/init.class_main.sh \
@@ -465,11 +499,13 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.verified_boot.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.software.verified_boot.xml
 
 # Vibrator
+ifneq ($(TARGET_IS_TABLET),true)
 PRODUCT_PACKAGES += \
     vendor.qti.hardware.vibrator.service
 
 PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/vibrator/excluded-input-devices.xml:$(TARGET_COPY_OUT_VENDOR)/etc/excluded-input-devices.xml
+endif
 
 # WiFi
 PRODUCT_PACKAGES += \
